@@ -5,3 +5,6 @@ node_modules/
 .DS_Store
 .sourcemaps
 dist/
+
+.capgo_key_v2
+.capgo_key_v2.pub

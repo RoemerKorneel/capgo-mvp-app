@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Native App
 
 on:
   workflow_dispatch:
@@ -20,7 +20,9 @@ jobs:
       release_type: ${{ inputs.release_type }}
     secrets:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
   build:
+    needs: bump-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

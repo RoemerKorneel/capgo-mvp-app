@@ -14,6 +14,12 @@ on:
           - major
 
 jobs:
+  bump-version:
+    uses: ./.github/workflows/bump-version.yml
+    with:
+      release_type: ${{ inputs.release_type }}
+    secrets:
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
   build:
     runs-on: ubuntu-latest
     steps:

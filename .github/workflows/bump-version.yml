@@ -1,0 +1,38 @@
+name: Bump version
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        description: "Release Type"
+        required: true
+        type: string
+        default: patch
+    secrets:
+      PERSONAL_ACCESS_TOKEN:
+        required: true
+
+jobs:
+  bump-version:
+    if: github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release):')
+    runs-on: ubuntu-latest
+    name: "Bump version and create changelog with standard version"
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          token: '${{ secrets.PERSONAL_ACCESS_TOKEN }}'
+      - name: Git config
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Create bump and changelog
+        run: npx capacitor-standard-version --release-as ${{ inputs.release_type }}
+      - name: Push to origin
+        run: |
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          remote_repo="https://${GITHUB_ACTOR}:${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git"
+          git pull $remote_repo $CURRENT_BRANCH
+          git push $remote_repo HEAD:$CURRENT_BRANCH --follow-tags --tags

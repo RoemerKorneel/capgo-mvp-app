@@ -1,6 +1,17 @@
 name: Build Android App
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release Type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
   build:

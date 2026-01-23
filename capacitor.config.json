@@ -1,0 +1,16 @@
+{
+  "appId": "com.capgo.mvp.app",
+  "appName": "capgo-mvp",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false
+    },
+    "CapacitorUpdater": {
+      "version": "1.0.15",
+      "appId": "com.capgo.mvp.app",
+      "autoUpdate": true,
+      "publicKey": "-----BEGIN RSA PUBLIC KEY-----\nMIIBCgKCAQEAw46KpYETzEgvjPV4n9eWSXclyLdY0cUiUKjpJojfTKJn8+d8q+4j\nQI2GxwxHuQ1tXAP532C7BD5cVhE1jXvHDJddpcWsScKEboQVgayrKk8q/pHL+UWe\nzuAGuIwcH0u1rnVQe2dpjON9t/TqiPak9W2XMEsjbMAR6/Hu/bm2UbRY2cfu7Ab1\nQmY2VpPdrGf+mhQAvlK3LWG4K9/QeD5XhF79LTi007c2msvoREOBVj4YWZATMRya\nXRO4/ktJ2odmxWnZ2jBv9qQFGGWTsjFKc396yAYLV0U0x1OXb2b3gcsNytjcaqxZ\n/heX51/LT5Q9jbkoUaopajdQmVVwxq1UMwIDAQAB\n-----END RSA PUBLIC KEY-----\n"
+    }
+  }
+}

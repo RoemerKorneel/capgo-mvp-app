@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">capgo-mvp</string>
+    <string name="title_activity_main">capgo-mvp</string>
+    <string name="package_name">com.capgo.mvp.app</string>
+    <string name="custom_url_scheme">com.capgo.mvp.app</string>
+</resources>

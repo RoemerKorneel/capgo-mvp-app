@@ -28,12 +28,17 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
       - name: Create bump and changelog
-        run: | 
-          npx capacitor-standard-version \
-            --release-as ${{ inputs.release_type }} \
-            --no-tag \
-            --skip.changelog \
-            -m "chore(release): bump mobile version to %s 🚀"
+        run: |
+          npx release-it ${{ inputs.release_type }} \
+            --ci \
+            --no-git.tag \
+            --git.commitMessage="chore(release): bump mobile version to \${version} 🚀"
+#        run: |
+#          npx capacitor-standard-version \
+#            --release-as ${{ inputs.release_type }} \
+#            --no-tag \
+#            --skip.changelog \
+#            -m "chore(release): bump mobile version to %s 🚀"
       - name: Push to origin
         run: |
           CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)

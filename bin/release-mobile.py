@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import time
 import webbrowser
 
 # Automatically install dependencies before continuing (without printing the output of the command).
@@ -16,8 +17,20 @@ subprocess.run(
 
 from halo import Halo
 from colorama import Fore, init
+from github import Github, Auth
 
 init(autoreset=True)
+
+REPO_NAME = "Roempie/capgo-mvp-app"
+WORKFLOW_FILE = "create-mobile-release.yml"
+
+
+def get_github_token() -> str:
+    """Get GitHub token from gh CLI."""
+    result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError("Failed to get GitHub token from gh CLI")
+    return result.stdout.strip()
 
 
 def main() -> None:
@@ -27,23 +40,19 @@ def main() -> None:
             print("\U0001F3C4 A browser window will now open to install the GitHub CLI.")
             webbrowser.open_new_tab("https://cli.github.com")
             exit(1)
-        else:
-            spinner.succeed('GitHub CLI is installed.')
+        spinner.succeed('GitHub CLI is installed.')
+
+    g = Github(auth=Auth.Token(get_github_token()))
+    repo = g.get_repo(REPO_NAME)
 
     with Halo(text="Checking for existing release PR...", spinner='dots', color='yellow',
               text_color='blue') as spinner:
-        result = subprocess.run(
-            ["gh", "pr", "list", "--head", "release-mobile", "--base", "dev", "--json", "number,url"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            import json
-            prs = json.loads(result.stdout)
-            if prs:
-                spinner.fail(f"A release PR already exists: {prs[0]['url']}")
-                print(f"{Fore.BLUE}\U00002139{Fore.RESET} Close the existing PR before creating a new release.")
-                exit(1)
+        prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
+        existing_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)
+        if existing_pr:
+            spinner.fail(f"A release PR already exists: {existing_pr.html_url}")
+            print(f"{Fore.BLUE}\U00002139{Fore.RESET} Close the existing PR before creating a new release.")
+            exit(1)
         spinner.succeed("No existing release PR found.")
 
     # Get release type from user
@@ -56,39 +65,25 @@ def main() -> None:
 
     with Halo(text=f"Triggering mobile release workflow ({release_type})...", spinner='arrow3', color='yellow',
               text_color='blue') as spinner:
-        result = subprocess.run(
-            ["gh", "workflow", "run", "create-mobile-release.yml", "-f", f"release_type={release_type}"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            spinner.fail(f"Failed to trigger workflow: {result.stderr}")
+        workflow = repo.get_workflow(WORKFLOW_FILE)
+        success = workflow.create_dispatch(ref="dev", inputs={"release_type": release_type})
+        if not success:
+            spinner.fail("Failed to trigger workflow")
             exit(1)
         spinner.succeed("Mobile release workflow triggered.")
 
     with Halo(text="Waiting for workflow to start...", spinner='dots', color='yellow',
               text_color='blue') as spinner:
-        # Wait a moment for the workflow to register
-        import time
         time.sleep(3)
 
-        # Get the latest run
-        result = subprocess.run(
-            ["gh", "run", "list", "--workflow=create-mobile-release.yml", "--limit=1", "--json", "databaseId,url"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            import json
-            runs = json.loads(result.stdout)
-            if runs:
-                run_url = runs[0]["url"]
-                spinner.succeed("Workflow started.")
-                print(f"\n{Fore.BLUE}\U00002139{Fore.RESET} View the workflow run: {run_url}")
-                print(f"{Fore.BLUE}\U00002139{Fore.RESET} The PR will be created automatically when the workflow completes.")
-                webbrowser.open_new_tab(run_url)
-            else:
-                spinner.warn("Workflow triggered but couldn't retrieve run URL.")
+        # Get the latest run for this workflow
+        runs = list(workflow.get_runs())
+        if runs:
+            run_url = runs[0].html_url
+            spinner.succeed("Workflow started.")
+            print(f"\n{Fore.BLUE}\U00002139{Fore.RESET} View the workflow run: {run_url}")
+            print(f"{Fore.BLUE}\U00002139{Fore.RESET} The PR will be created automatically when the workflow completes.")
+            webbrowser.open_new_tab(run_url)
         else:
             spinner.warn("Workflow triggered but couldn't retrieve run URL.")
 

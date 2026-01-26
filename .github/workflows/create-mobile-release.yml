@@ -61,9 +61,13 @@ jobs:
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          PR_BODY: |
+            PR created by [`release-mobile`](../blob/dev/app.digibtw.nl/api/bin/release-mobile).
+
+            ![Gogogo](https://media.giphy.com/media/e7PqS0VCIsmi6LKkY4/giphy-downsized.gif)
         run: |
           gh pr create \
-            --title "Mobile Release" \
-            --body "Automated mobile release PR created by GitHub Actions." \
+            --title "Mobile Release PR" \
+            --body "$PR_BODY" \
             --head release-mobile \
             --base dev

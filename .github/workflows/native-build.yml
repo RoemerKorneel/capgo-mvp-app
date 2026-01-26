@@ -12,17 +12,13 @@ on:
           - patch
           - minor
           - major
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
 
 jobs:
-  bump-version:
-    uses: ./.github/workflows/bump-version.yml
-    with:
-      release_type: ${{ inputs.release_type }}
-    secrets:
-      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
   build:
-    needs: bump-version
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'release-mobile'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

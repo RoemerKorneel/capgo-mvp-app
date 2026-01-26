@@ -30,6 +30,7 @@ jobs:
       - name: Create bump and changelog
         run: |
           npx release-it ${{ inputs.release_type }} \
+            --npm.publish=false \
             --ci \
             --no-git.tag \
             --git.commitMessage="chore(release): bump mobile version to \${version} 🚀"

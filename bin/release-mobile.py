@@ -26,21 +26,20 @@ WORKFLOW_FILE = "create-mobile-release.yml"
 
 
 def get_github_token() -> str:
-    """Get GitHub token from gh CLI."""
-    result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError("Failed to get GitHub token from gh CLI")
-    return result.stdout.strip()
+    token = os.popen("gh auth token").read().strip()
+    return token
 
 
 def main() -> None:
     with Halo(text="Checking whether the GitHub CLI is installed...", spinner='dots', color='yellow') as spinner:
         if os.system("gh --version >/dev/null 2>&1") != 0:
+            spinner.text_color = 'red'
             spinner.fail('You do not have the "gh" command installed. This is required to continue.')
             print("\U0001F3C4 A browser window will now open to install the GitHub CLI.")
             webbrowser.open_new_tab("https://cli.github.com")
             exit(1)
-        spinner.succeed('GitHub CLI is installed.')
+        else:
+            spinner.succeed('GitHub CLI is installed.')
 
     g = Github(auth=Auth.Token(get_github_token()))
     repo = g.get_repo(REPO_NAME)
@@ -72,20 +71,22 @@ def main() -> None:
             exit(1)
         spinner.succeed("Mobile release workflow triggered.")
 
-    with Halo(text="Waiting for workflow to start...", spinner='dots', color='yellow',
+    with Halo(text="Waiting for release PR to be created... (~30s)", spinner='dots', color='yellow',
               text_color='blue') as spinner:
-        time.sleep(3)
+        release_pr = None
+        for _ in range(30):  # Try for ~60 seconds
+            time.sleep(2)
+            prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
+            release_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)
+            if release_pr:
+                break
 
-        # Get the latest run for this workflow
-        runs = list(workflow.get_runs())
-        if runs:
-            run_url = runs[0].html_url
-            spinner.succeed("Workflow started.")
-            print(f"\n{Fore.BLUE}\U00002139{Fore.RESET} View the workflow run: {run_url}")
-            print(f"{Fore.BLUE}\U00002139{Fore.RESET} The PR will be created automatically when the workflow completes.")
-            webbrowser.open_new_tab(run_url)
+        if release_pr:
+            spinner.succeed(f"Release PR created: {release_pr.html_url}")
+            webbrowser.open_new_tab(release_pr.html_url)
         else:
-            spinner.warn("Workflow triggered but couldn't retrieve run URL.")
+            spinner.fail("Timed out waiting for PR. Check GitHub Actions for errors.")
+            webbrowser.open_new_tab(f"https://github.com/{REPO_NAME}/actions/workflows/{WORKFLOW_FILE}")
 
 
 if __name__ == "__main__":

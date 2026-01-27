@@ -1,0 +1,13 @@
+{
+    "git": {
+        "requireCleanWorkingDir": false,
+        "commitMessage": "chore(release): bump mobile version to ${version}",
+        "tagName": "v${version}"
+    },
+    "npm": {
+        "publish": false
+    },
+    "hooks": {
+        "after:bump": "npx trapeze update-project --android-version-name ${version} --ios-version ${version} --increment-build"
+    }
+}

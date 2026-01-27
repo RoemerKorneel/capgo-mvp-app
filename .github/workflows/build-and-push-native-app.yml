@@ -30,7 +30,7 @@ jobs:
         env:
           CAPGO_TOKEN: ${{secrets.CAPGO_TOKEN}}
         run: |
-          npx @capgo/cli@latest build com.capgo.mvp.ap \
+          npx @capgo/cli@latest build com.capgo.mvp.app \
             --platform both \
             --build-mode debug
 

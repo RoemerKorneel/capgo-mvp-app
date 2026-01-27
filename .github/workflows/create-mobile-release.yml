@@ -49,20 +49,19 @@ jobs:
           git checkout -b release-mobile
           git push -u origin release-mobile
 
-#      - name: Bump version
-#        run: |
-#          npx release-it ${{ inputs.release_type }} \
-#            --ci \
-#            --no-git.tag
       - name: Bump version
         run: |
-          npx release-it ${{ inputs.release_type }} \
-            --ci \
-            --no-git.tag \
-            --npm.publish=false \
-            --git.requireCleanWorkingDir=false \
-            --git.commitMessage="chore(release): bump mobile version to \${version}" \
-            --hooks.after:bump="NEW_VERSION=\${version} npx trapeze run trapeze.yml -y"
+          npm version ${{ inputs.release_type }} --no-git-tag-version
+
+          # Get the new version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+
+          # Update native projects (Android & iOS build numbers + version)
+          NEW_VERSION=$NEW_VERSION npx trapeze run trapeze.yml -y
+
+          # Commit all changes
+          git add .
+          git commit -m "chore(release): bump mobile version to ${NEW_VERSION}"
 #      - name: Bump Version & Build Number
 #        run: |
 #          npx capacitor-standard-version \
@@ -71,6 +70,16 @@ jobs:
 #            --message "chore(release): bump mobile version to %s 🚀"
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+#      - name: Bump version
+#        run: |
+#          npx release-it ${{ inputs.release_type }} \
+#            --ci \
+#            --no-git.tag \
+#            --npm.publish=false \
+#            --git.requireCleanWorkingDir=false \
+#            --git.commitMessage="chore(release): bump mobile version to \${version}" \
+#            --hooks.after:bump="NEW_VERSION=\${version} npx trapeze run trapeze.yml -y"
 
 #      - name: Sync Native Projects
 #        run: npx cap sync

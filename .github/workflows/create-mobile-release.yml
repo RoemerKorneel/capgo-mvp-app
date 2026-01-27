@@ -21,7 +21,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: dev
-          fetch-depth: 0
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Setup Node.js
@@ -62,24 +61,6 @@ jobs:
           # Commit all changes
           git add .
           git commit -m "chore(release): bump mobile version to ${NEW_VERSION}"
-#      - name: Bump Version & Build Number
-#        run: |
-#          npx capacitor-standard-version \
-#            --no-git-tag-version \
-#            --skip.changelog \
-#            --message "chore(release): bump mobile version to %s 🚀"
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-
-#      - name: Bump version
-#        run: |
-#          npx release-it ${{ inputs.release_type }} \
-#            --ci \
-#            --no-git.tag \
-#            --npm.publish=false \
-#            --git.requireCleanWorkingDir=false \
-#            --git.commitMessage="chore(release): bump mobile version to \${version}" \
-#            --hooks.after:bump="NEW_VERSION=\${version} npx trapeze run trapeze.yml -y"
 
 #      - name: Sync Native Projects
 #        run: npx cap sync
@@ -100,3 +81,5 @@ jobs:
             --body "$PR_BODY" \
             --head release-mobile \
             --base dev
+
+          gh pr merge release-mobile --auto --merge

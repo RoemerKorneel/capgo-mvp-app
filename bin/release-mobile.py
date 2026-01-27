@@ -75,7 +75,7 @@ def main() -> None:
               text_color='blue') as spinner:
         release_pr = None
         for i in range(30):  # Try for ~60 seconds
-            spinner.text = f"Waiting for release PR to be created... ({(i + 1) * 2}s)"
+            spinner.text = f"Waiting for release PR to be created, may take up to 60s... ({(i + 1) * 2}s)"
             time.sleep(2)
             prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
             release_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)

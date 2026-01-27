@@ -64,7 +64,7 @@ jobs:
 
       - name: Sync Capacitor
         run: |
-          npm build
+          npm run build
           npx cap sync
 
       - name: Push version bump

@@ -62,8 +62,8 @@ jobs:
           git add .
           git commit -m "chore(release): bump mobile version to ${NEW_VERSION}"
 
-#      - name: Sync Native Projects
-#        run: npx cap sync
+      - name: Sync Capacitor
+        run: npx cap sync
 
       - name: Push version bump
         run: git push origin release-mobile

@@ -49,17 +49,23 @@ jobs:
           git checkout -b release-mobile
           git push -u origin release-mobile
 
+#      - name: Bump version
+#        run: |
+#          npx release-it ${{ inputs.release_type }} \
+#            --ci \
+#            --no-git.tag
+
       - name: Bump Version & Build Number
         run: |
-          npx @capgo/standard-version \
+          npx capacitor-standard-version \
             --no-git-tag-version \
             --skip.changelog \
             --message "chore(release): bump mobile version to %s 🚀"
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-#      - name: Sync Native Projects
-#        run: npx cap sync
+      - name: Sync Native Projects
+        run: npx cap sync
 
       - name: Push version bump
         run: git push origin release-mobile

@@ -63,7 +63,9 @@ jobs:
           git commit -m "chore(release): bump mobile version to ${NEW_VERSION}"
 
       - name: Sync Capacitor
-        run: npx cap sync
+        run: |
+          npm build
+          npx cap sync
 
       - name: Push version bump
         run: git push origin release-mobile

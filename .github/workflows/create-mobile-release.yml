@@ -62,7 +62,7 @@ jobs:
             --npm.publish=false \
             --git.requireCleanWorkingDir=false \
             --git.commitMessage="chore(release): bump mobile version to \${version}" \
-            --hooks.after:bump="NEW_VERSION=\${version} npx --yes trapeze run trapeze.yml"
+            --hooks.after:bump="NEW_VERSION=\${version} npx trapeze run trapeze.yml -y"
 #      - name: Bump Version & Build Number
 #        run: |
 #          npx capacitor-standard-version \

@@ -74,7 +74,8 @@ def main() -> None:
     with Halo(text="Waiting for release PR to be created... (~30s)", spinner='dots', color='yellow',
               text_color='blue') as spinner:
         release_pr = None
-        for _ in range(30):  # Try for ~60 seconds
+        for i in range(30):  # Try for ~60 seconds
+            spinner.text = f"Waiting for release PR to be created... ({(i + 1) * 2}s)"
             time.sleep(2)
             prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
             release_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)

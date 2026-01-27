@@ -1,0 +1,11 @@
+# trapeze.yml
+vars:
+  NEW_VERSION:
+
+platforms:
+  android:
+    versionName: $NEW_VERSION
+    incrementVersionCode: true
+  ios:
+    version: $NEW_VERSION
+    incrementBuild: true

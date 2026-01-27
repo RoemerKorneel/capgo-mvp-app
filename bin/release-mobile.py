@@ -22,7 +22,7 @@ from github import Github, Auth
 init(autoreset=True)
 
 REPO_NAME = "Roempie/capgo-mvp-app"
-WORKFLOW_FILE = "create-mobile-release.yml"
+WORKFLOW_FILE = "create-mobile-release-pr.yml"
 
 
 def get_github_token() -> str:

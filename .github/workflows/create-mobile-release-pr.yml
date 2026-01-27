@@ -1,4 +1,4 @@
-name: Create Mobile Release
+name: Create Mobile Release PR
 
 on:
   workflow_dispatch:

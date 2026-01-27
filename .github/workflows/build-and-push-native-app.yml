@@ -24,7 +24,15 @@ jobs:
         run: npm run build
 
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: npx cap sync
+
+      - name: Build native app
+        env:
+          CAPGO_TOKEN: e65ec15a-e0d3-4192-937f-1d43a79dd80f
+        run: |
+          npx @capgo/cli@latest build com.capgo.mvp.ap \
+            --platform both \
+            --build-mode debug
 
 #      - name: Build native app
 #        env:

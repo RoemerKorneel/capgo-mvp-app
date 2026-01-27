@@ -28,7 +28,7 @@ jobs:
 
       - name: Build native app
         env:
-          CAPGO_TOKEN: e65ec15a-e0d3-4192-937f-1d43a79dd80f
+          CAPGO_TOKEN: ${{secrets.CAPGO_TOKEN}}
         run: |
           npx @capgo/cli@latest build com.capgo.mvp.ap \
             --platform both \

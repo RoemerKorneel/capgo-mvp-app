@@ -1,4 +1,4 @@
-name: Build Native App
+name: Blocking Failed Build
 
 on:
   pull_request:

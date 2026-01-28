@@ -1,0 +1,15 @@
+name: Build Native App
+
+on:
+  pull_request:
+    branches: [dev]
+    types: [opened, reopened]
+
+jobs:
+  build:
+    if: github.head_ref == 'release-mobile'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Try to fail
+        run: exit 1

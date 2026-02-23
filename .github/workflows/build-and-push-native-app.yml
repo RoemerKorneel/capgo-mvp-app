@@ -30,14 +30,29 @@ jobs:
         env:
           CAPGO_TOKEN: ${{secrets.CAPGO_TOKEN}}
         run: |
-          npx @capgo/cli@latest build com.capgo.mvp.app \
-            --platform both \
-            --build-mode debug
+          echo "Building Native app"
 
-#      - name: Build native app
-#        env:
-#          CAPGO_TOKEN: ${{ secrets.CAPGO_TOKEN }}
-#        run: |
-#          npx @capgo/cli@latest build nl.digibtw.app,nl.digibtw.knab \
-#            --platform both \
-#            --build-mode debug
+      - name: Build native app
+        env:
+          CAPGO_TOKEN: ${{secrets.CAPGO_TOKEN}}
+        run: |
+          echo "Building Native app"
+
+  create-native-tag:
+    runs-on: ubuntu-latest
+    needs: [build] # should be deploy-ios, deploy-android
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }} # should be digibot PAT
+
+      - name: Create and push native tag
+        run: |
+          VERSION=$(node -p "require('./app/package.json').version")
+          TAG="mobile-native-v${VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f "$TAG"
+          git push origin "$TAG" --force
+          echo "Created tag: ${TAG}"

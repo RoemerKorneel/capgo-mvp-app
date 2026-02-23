@@ -1,4 +1,5 @@
-name: Create Mobile Release PR
+name: Prepare Mobile Release
+run-name: "Prepare Mobile Release (${{ inputs.run_id }})"
 
 on:
   workflow_dispatch:
@@ -12,16 +13,20 @@ on:
           - minor
           - major
         default: patch
+      run_id:
+        description: "Unique run identifier (set and used by release-mobile script)"
+        required: false
+        default: ""
 
 jobs:
-  create-release:
+  prepare-release:
     runs-on: ubuntu-latest
     steps:
       - name: Check out dev branch
         uses: actions/checkout@v6
         with:
           ref: dev
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          token: ${{ secrets.GITHUBBOT_DIGIBTW_PAT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -29,6 +34,7 @@ jobs:
           node-version: '24'
 
       - name: Install Dependencies
+        working-directory: app
         run: npm ci
 
       - name: Git config
@@ -44,37 +50,35 @@ jobs:
           fi
 
       - name: Create release branch
-        run: |
-          git checkout -b release-mobile
-          git push -u origin release-mobile
+        run: git checkout -b release-mobile
 
       - name: Bump version
+        working-directory: app
         run: |
           npm version ${{ inputs.release_type }} --no-git-tag-version
 
           # Get the new version
           NEW_VERSION=$(node -p "require('./package.json').version")
 
-          # Update native projects (Android & iOS build numbers + version)
+          # Update app versions
           NEW_VERSION=$NEW_VERSION npx trapeze run trapeze.yml -y
 
           # Commit all changes
           git add .
-          git commit -m "chore(release): bump mobile version to ${NEW_VERSION}"
+          git commit -m "chore(release): bump mobile version to ${NEW_VERSION}
 
-      - name: Sync Capacitor
-        run: |
-          npm run build
-          npx cap sync
+          Triggered by ${{ github.actor }}"
 
-      - name: Push version bump
-        run: git push origin release-mobile
+      - name: Push release branch
+        run: git push -u origin release-mobile
 
       - name: Create Pull Request
         env:
-          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUBBOT_DIGIBTW_PAT }}
           PR_BODY: |
             PR created by [`release-mobile`](../blob/dev/app.digibtw.nl/api/bin/release-mobile).
+
+            Triggered by @${{ github.actor }}
 
             ![Gogogo](https://media.giphy.com/media/e7PqS0VCIsmi6LKkY4/giphy-downsized.gif)
         run: |
@@ -83,5 +87,3 @@ jobs:
             --body "$PR_BODY" \
             --head release-mobile \
             --base dev
-
-          gh pr merge release-mobile --auto --merge

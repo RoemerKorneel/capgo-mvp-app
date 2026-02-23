@@ -3,6 +3,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 import webbrowser
 
 # Automatically install dependencies before continuing (without printing the output of the command).
@@ -17,13 +18,14 @@ subprocess.run(
 
 from halo import Halo
 from colorama import Fore, init
-from github import Github, Auth
+from github import Github, Auth, GithubException
 
 init(autoreset=True)
 
 REPO_NAME = "Roempie/capgo-mvp-app"
-WORKFLOW_FILE = "create-mobile-release-pr.yml"
-
+WORKFLOW_FILE = "prepare-mobile-release.yml"
+DEV_BRANCH = "dev"
+RELEASE_BRANCH = "release-mobile"
 
 def get_github_token() -> str:
     token = os.popen("gh auth token").read().strip()
@@ -46,8 +48,8 @@ def main() -> None:
 
     with Halo(text="Checking for existing release PR...", spinner='dots', color='yellow',
               text_color='blue') as spinner:
-        prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
-        existing_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)
+        prs = list(repo.get_pulls(state='open', base=DEV_BRANCH, head=f'{repo.owner.login}:{RELEASE_BRANCH}'))
+        existing_pr = next((pr for pr in prs if pr.head.ref == RELEASE_BRANCH), None)
         if existing_pr:
             spinner.fail(f"A release PR already exists: {existing_pr.html_url}")
             print(f"{Fore.BLUE}\U00002139{Fore.RESET} Close the existing PR before creating a new release.")
@@ -62,32 +64,73 @@ def main() -> None:
     choice = input(f"{Fore.YELLOW}Enter choice [1]: {Fore.RESET}").strip() or "1"
     release_type = {"1": "patch", "2": "minor", "3": "major"}.get(choice, "patch")
 
+    run_id = str(uuid.uuid4())[:8]
+
     with Halo(text=f"Triggering mobile release workflow ({release_type})...", spinner='arrow3', color='yellow',
               text_color='blue') as spinner:
         workflow = repo.get_workflow(WORKFLOW_FILE)
-        success = workflow.create_dispatch(ref="dev", inputs={"release_type": release_type})
+        success = workflow.create_dispatch(ref=DEV_BRANCH, inputs={"release_type": release_type, "run_id": run_id})
         if not success:
             spinner.fail("Failed to trigger workflow")
             exit(1)
         spinner.succeed("Mobile release workflow triggered.")
 
-    with Halo(text="Waiting for release PR to be created... (~30s)", spinner='dots', color='yellow',
+    # Find the workflow run by matching our unique run_id in the run name
+    with Halo(text="Waiting for workflow run to appear...", spinner='dots', color='yellow',
+              text_color='blue') as spinner:
+        run = None
+        for _ in range(20):
+            time.sleep(2)
+            spinner.text = f"Waiting for workflow run to appear..."
+            for r in workflow.get_runs(branch=DEV_BRANCH):
+                if run_id in (r.name or ""):
+                    run = r
+                    break
+            if run:
+                break
+
+        if not run:
+            spinner.fail("Could not find workflow run. Check GitHub Actions.")
+            webbrowser.open_new_tab(f"https://github.com/{REPO_NAME}/actions/workflows/{WORKFLOW_FILE}")
+            exit(1)
+
+        spinner.succeed(f"Workflow run found: {run.html_url}")
+
+    # Poll workflow run status
+    with Halo(text=f"Workflow: {run.status}...", spinner='dots', color='yellow',
+              text_color='blue') as spinner:
+        while run.status != "completed":
+            time.sleep(5)
+            run.update()
+            spinner.text = f"Workflow: {run.status}... (may take up to 1 min)"
+
+        if run.conclusion != "success":
+            spinner.fail(f"Workflow failed: {run.conclusion}")
+            webbrowser.open_new_tab(run.html_url)
+            exit(1)
+
+        spinner.succeed("Workflow completed successfully.")
+
+    # Find the release PR
+    with Halo(text="Looking for release PR...", spinner='dots', color='yellow',
               text_color='blue') as spinner:
         release_pr = None
-        for i in range(30):  # Try for ~60 seconds
-            spinner.text = f"Waiting for release PR to be created, may take up to 60s... ({(i + 1) * 2}s)"
+        for _ in range(10):
             time.sleep(2)
-            prs = list(repo.get_pulls(state='open', base='dev', head='release-mobile'))
-            release_pr = next((pr for pr in prs if pr.head.ref == 'release-mobile'), None)
+            prs = list(repo.get_pulls(state='open', base=DEV_BRANCH, head=f'{repo.owner.login}:{RELEASE_BRANCH}'))
+            release_pr = next((pr for pr in prs if pr.head.ref == RELEASE_BRANCH), None)
             if release_pr:
                 break
 
         if release_pr:
             spinner.succeed(f"Release PR created: {release_pr.html_url}")
+            print(f"\n{Fore.CYAN}\U0001F449 The build and deployment to the app stores happens within the PR.\n"
+                  f"   Once deployments are successful, verify in the developer consoles\n"
+                  f"   (App Store Connect / Google Play Console), then approve and merge the PR.{Fore.RESET}")
             webbrowser.open_new_tab(release_pr.html_url)
         else:
-            spinner.fail("Timed out waiting for PR. Check GitHub Actions for errors.")
-            webbrowser.open_new_tab(f"https://github.com/{REPO_NAME}/actions/workflows/{WORKFLOW_FILE}")
+            spinner.fail("Workflow succeeded but PR was not found.")
+            webbrowser.open_new_tab(run.html_url)
 
 
 if __name__ == "__main__":

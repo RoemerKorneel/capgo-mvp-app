@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import sys
+import webbrowser
+from typing import Optional
+
+# Automatically install dependencies before continuing (without printing the output of the command).
+# (And use the currently running Python interpreter via sys.executable to install the dependencies, instead of the system Python.)
+requirements_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
+subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-r", requirements_path],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    check=True
+)
+
+from halo import Halo
+from github import Github, PullRequest, Repository
+import github.Repository
+from colorama import Fore, init
+
+init(autoreset=True)
+
+
+def get_github_token() -> str:
+    token = os.popen("gh auth token").read().strip()
+    return token
+
+    # The method below is disabled and done via the method above. On Pieter's machine, the config file only contained this:
+    #   github.com:
+    #     user: pfibbe
+    #     git_protocol: https
+
+    # """Read the GitHub token from the config file used by the gh command."""
+    # config_path = os.path.join(os.path.expanduser("~"), ".config", "gh", "hosts.yml")
+    # with open(config_path, 'r') as config_file:
+    #     config = yaml.safe_load(config_file)
+    # return config['github.com']['oauth_token']
+
+
+def get_release_pr(repo: github.Repository.Repository) -> Optional[PullRequest.PullRequest]:
+    """Retrieve the PR that merges the release branch into the prod branch."""
+    prs = repo.get_pulls(state='open', base='prod', head='release')
+    for pr in prs:
+        # The 'head' parameter doesn't seem to properly filter the target branch,
+        # so check it again manually.
+        if pr.head.ref == 'release':
+            return pr
+    return None
+
+
+def branch_exists(repo: github.Repository.Repository, branch: str) -> bool:
+    """Check whether a branch exists in the repository."""
+    # Catch the exception that occurs when the branch does not exist:
+    # github.GithubException.GithubException: 404 {"message": "Branch not found", ...}
+    try:
+        repo.get_branch(branch)
+        return True
+    except github.GithubException:
+        return False
+
+
+def main() -> None:
+    with Halo(text="Checking whether the GitHub CLI is installed...", spinner='dots', color='yellow') as spinner:
+        if os.system("gh --version >/dev/null 2>&1") != 0:
+            spinner.text_color = 'red'
+            spinner.fail('You do not have the "gh" command installed. This is required to continue.')
+            print("\U0001F3C4 A browser window will now open to install the GitHub CLI.")
+            webbrowser.open_new_tab("https://cli.github.com")
+            exit(1)
+        else:
+            spinner.succeed('GitHub CLI is installed.')
+
+    g = Github(auth=github.Auth.Token(get_github_token()))
+    repo = g.get_repo("RoemerKorneel/capgo-mvp-app")
+
+    with Halo(text="Checking whether a release branch already exists...", spinner='dots', color='yellow',
+              text_color='blue') as spinner:
+        if not branch_exists(repo, "release"):
+            spinner.succeed("Release branch does not exist yet.")
+        else:
+            spinner.text = 'Checking whether a release PR also exists...'
+            if (release_pr := get_release_pr(repo)) is not None:
+                spinner.text_color = 'yellow'
+                spinner.warn(
+                    "A release PR already exists (from branch 'release' to 'prod'): " + release_pr.html_url)
+                print(f"{Fore.BLUE}\U00002139{Fore.RESET} If you want to create a new release, close the current PR and run this script again.")
+                exit(1)
+            else:
+                spinner.text_color = 'yellow'
+                spinner.warn("A release branch already exists, but without a matching PR.")
+                with Halo(text="Deleting existing release branch first...", spinner='star', color='yellow',
+                          text_color='blue') as spinner2:
+                    repo.get_git_ref("heads/release").delete()
+                    spinner2.succeed("Existing release branch deleted.")
+
+    with Halo(text="Creating release branch on GitHub...", spinner='arrow3', color='yellow',
+              text_color='blue') as spinner:
+        dev_branch = repo.get_branch("dev")
+        repo.create_git_ref(ref="refs/heads/release", sha=dev_branch.commit.sha)
+        spinner.succeed("Release branch created.")
+
+    with Halo(text="Creating pull request from release to prod...", spinner='arrow3', color='yellow',
+              text_color='blue') as spinner:
+        pr = repo.create_pull(
+            title="Release PR",
+            body="""PR created by [`release`](../blob/dev/app.digibtw.nl/api/bin/release).
+
+![Gogogo](https://media.giphy.com/media/e7PqS0VCIsmi6LKkY4/giphy-downsized.gif)
+""",
+            head="release",
+            base="prod",
+        )
+        spinner.succeed("\U0001F680 Pull request created.")
+
+    with Halo(text="Enabling Automerge on the PR...", spinner='dots', color='yellow',
+              text_color='blue') as spinner:
+        pr.enable_automerge()
+        spinner.succeed("\U0001F500 Automerge enabled.")
+
+    print(f"\U0001F3C4 The release PR will now open in your browser: {pr.html_url}")
+    webbrowser.open_new_tab(pr.html_url)
+
+
+if __name__ == "__main__":
+    main()

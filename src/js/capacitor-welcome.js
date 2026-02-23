@@ -3,7 +3,6 @@ import { Camera } from '@capacitor/camera';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
 CapacitorUpdater.notifyAppReady();
-CapacitorUpdater.
 
 window.customElements.define(
   'capacitor-welcome',

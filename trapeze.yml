@@ -4,7 +4,9 @@ vars:
 platforms:
   android:
     versionName: $NEW_VERSION
-    incrementVersionCode: true
   ios:
-    version: $NEW_VERSION
-    incrementBuild: true
+    targets:
+      App:
+        version: $NEW_VERSION
+      Knab:
+        version: $NEW_VERSION

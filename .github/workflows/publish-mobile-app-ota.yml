@@ -32,9 +32,9 @@ jobs:
       - name: Check for pending native changes since last mobile-native-* tag
         id: check
         run: |
-          # package.json, capacitor.config.ts, trapeze.yml, android/*, ios/*
-#          NATIVE_PATHS="^app/(package\.json|capacitor\.config\.ts|trapeze\.yml|ios/|android/)"
-#          APP_VERSION=$(node -p "require('./app/package.json').version")
+          # app/package.json, app/capacitor.config.ts, app/trapeze.yml, app/android/*, app/ios/* files
+          # NATIVE_PATHS="^app/(package\.json|capacitor\.config\.ts|trapeze\.yml|ios/|android/)"
+          # APP_VERSION=$(node -p "require('./app/package.json').version")
           NATIVE_PATHS="^(package\.json|capacitor\.config\.json|trapeze\.yml|ios/|android/)"
           APP_VERSION=$(node -p "require('./package.json').version")
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT

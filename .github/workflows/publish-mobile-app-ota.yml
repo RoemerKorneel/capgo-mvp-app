@@ -71,7 +71,7 @@ jobs:
 
       - name: Build React frontend
         run: |
-          npm ci
+          npm ci 
           npm run build
 #          npm ci
 #          npm --prefix ../app.digibtw.nl/react ci

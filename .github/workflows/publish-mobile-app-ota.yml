@@ -24,7 +24,7 @@ jobs:
       app_version: ${{ steps.check.outputs.app_version }} # current app version (package.json)
       bundle_version: ${{ steps.check.outputs.bundle_version }} # capgo bundle version prerelease
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -60,10 +60,10 @@ jobs:
 #      run:
 #        working-directory: app
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
 

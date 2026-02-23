@@ -34,7 +34,6 @@ jobs:
           node-version: '24'
 
       - name: Install Dependencies
-        working-directory: app
         run: npm ci
 
       - name: Git config
@@ -53,7 +52,6 @@ jobs:
         run: git checkout -b release-mobile
 
       - name: Bump version
-        working-directory: app
         run: |
           npm version ${{ inputs.release_type }} --no-git-tag-version
 

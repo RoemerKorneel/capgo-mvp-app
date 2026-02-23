@@ -33,8 +33,10 @@ jobs:
         id: check
         run: |
           # package.json, capacitor.config.ts, trapeze.yml, android/*, ios/*
-          NATIVE_PATHS="^app/(package\.json|capacitor\.config\.ts|trapeze\.yml|ios/|android/)"
-          APP_VERSION=$(node -p "require('./app/package.json').version")
+#          NATIVE_PATHS="^app/(package\.json|capacitor\.config\.ts|trapeze\.yml|ios/|android/)"
+#          APP_VERSION=$(node -p "require('./app/package.json').version")
+          NATIVE_PATHS="^(package\.json|capacitor\.config\.json|trapeze\.yml|ios/|android/)"
+          APP_VERSION=$(node -p "require('./package.json').version")
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
 
           LAST_TAG=$(git describe --tags --match "mobile-native-*" --abbrev=0 2>/dev/null || echo "")

@@ -55,11 +55,21 @@ jobs:
           echo "Building..."
           npm run build
 
+      - name: Compute bundle version
+        id: version
+        run: |
+          APP_VERSION="${{ needs.detect.outputs.app_version }}"
+          MAJOR=$(echo "$APP_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$APP_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$APP_VERSION" | cut -d. -f3)
+          BUNDLE_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-prod.${{ github.run_number }}"
+          echo "bundle_version=${BUNDLE_VERSION}" >> $GITHUB_OUTPUT
+          echo "Bundle version: ${BUNDLE_VERSION}"
+
       - name: Upload to Capgo production
         run: |
-          BUNDLE_VERSION="${{ needs.detect.outputs.app_version }}-${{ github.run_number }}"
-          echo "Uploading bundle ${BUNDLE_VERSION} to production channel..."
-          npx @capgo/cli bundle upload -a "${{ secrets.CAPGO_TOKEN }}" -b "${BUNDLE_VERSION}" --channel production --delta
+          echo "Uploading bundle ${{ steps.version.outputs.bundle_version }} to production channel..."
+          npx @capgo/cli bundle upload -a "${{ secrets.CAPGO_TOKEN }}" -b "${{ steps.version.outputs.bundle_version }}" --channel production --delta
           echo "Done"
 
   skip-ota-native-pending:

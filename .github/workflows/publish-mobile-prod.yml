@@ -53,11 +53,10 @@ jobs:
         run: |
           BUNDLE_VERSION="${{ needs.detect.outputs.app_version }}-${{ github.run_number }}"
           npx @capgo/cli bundle upload \
-            --apikey "${{ secrets.CAPGO_TOKEN }}" \
-            --app-id com.capgo.mvp.app.app \
+            -a "${{ secrets.CAPGO_TOKEN }}" \
+            -b "${BUNDLE_VERSION}" \
             --channel production \
-            --bundle-version "${BUNDLE_VERSION}" \
-            --min-update-version "${{ needs.detect.outputs.app_version }}"
+            --delta
 
   skip-ota-native-pending:
     runs-on: ubuntu-latest

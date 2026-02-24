@@ -91,11 +91,10 @@ jobs:
       - name: Upload to Capgo beta
         run: |
           npx @capgo/cli bundle upload \
-            --apikey "${{ secrets.CAPGO_TOKEN }}" \
-            --app-id com.capgo.mvp.app.app \
-            --channel beta \
-            --bundle-version "${{ steps.version.outputs.bundle_version }}" \
-            --min-update-version "${{ needs.detect.outputs.app_version }}"
+            -a "${{ secrets.CAPGO_TOKEN }}" \
+            -b "${{ steps.version.outputs.bundle_version }}" \
+            --channel beta 
+            --delta
 
   build-native-dev:
     runs-on: ubuntu-latest

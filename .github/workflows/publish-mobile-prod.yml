@@ -25,10 +25,14 @@ jobs:
           APP_VERSION=$(node -p "require('./package.json').version")
           echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
 
+          echo "App version: ${APP_VERSION}"
+
           CHANGED=$(git diff --name-only origin/prod...HEAD | grep -cE "${NATIVE_PATHS}" || true)
           if [ "$CHANGED" -gt "0" ]; then
+            echo "Native changes detected in PR (${CHANGED} file(s)) — OTA skipped"
             echo "native_pending=true" >> $GITHUB_OUTPUT
           else
+            echo "No native changes in PR — OTA update"
             echo "native_pending=false" >> $GITHUB_OUTPUT
           fi
 
@@ -46,17 +50,17 @@ jobs:
 
       - name: Build React frontend
         run: |
+          echo "Installing dependencies..."
           npm ci
+          echo "Building..."
           npm run build
 
       - name: Upload to Capgo production
         run: |
           BUNDLE_VERSION="${{ needs.detect.outputs.app_version }}-${{ github.run_number }}"
-          npx @capgo/cli bundle upload \
-            -a "${{ secrets.CAPGO_TOKEN }}" \
-            -b "${BUNDLE_VERSION}" \
-            --channel production \
-            --delta
+          echo "Uploading bundle ${BUNDLE_VERSION} to production channel..."
+          npx @capgo/cli bundle upload -a "${{ secrets.CAPGO_TOKEN }}" -b "${BUNDLE_VERSION}" --channel production --delta
+          echo "Done"
 
   skip-ota-native-pending:
     runs-on: ubuntu-latest
@@ -67,7 +71,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         run: |
+          echo "Native changes in PR — skipping OTA, triggering prepare-mobile-release..."
           gh workflow run prepare-mobile-release.yml \
             --repo "${{ github.repository }}" \
             --ref dev \
             -f release_type=patch
+          echo "Workflow triggered"

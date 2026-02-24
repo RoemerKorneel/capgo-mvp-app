@@ -1,28 +1,27 @@
-name: Publish Mobile App OTA (Beta)
+name: Publish Mobile App OTA (Dev)
 
 on:
   push:
     branches: [dev]
-#    paths:
-#      - 'app.digibtw.nl/react/**'
-#      - 'app/package.json'
-#      - 'app/capacitor.config.ts'
-#      - 'app/ios/**'
-#      - 'app/android/**'
-#      - 'app/trapeze.yml'
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'capacitor.config.json'
+      - 'trapeze.yml'
+      - 'ios/**'
+      - 'android/**'
 
 concurrency:
-  group: publish-ota-beta
-  cancel-in-progress: true
+  group: publish-mobile-dev
+  cancel-in-progress: false
 
 jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
-      native_pending: ${{ steps.check.outputs.native_pending }} # is a native build required/presumably queued?
-      last_tag: ${{ steps.check.outputs.last_tag }} # most recent native build version
-      app_version: ${{ steps.check.outputs.app_version }} # current app version (package.json)
-      bundle_version: ${{ steps.check.outputs.bundle_version }} # capgo bundle version prerelease
+      native_pending: ${{ steps.check.outputs.native_pending }}
+      last_tag: ${{ steps.check.outputs.last_tag }}
+      app_version: ${{ steps.check.outputs.app_version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,7 +70,7 @@ jobs:
 
       - name: Build React frontend
         run: |
-          npm ci 
+          npm ci
           npm run build
 #          npm ci
 #          npm --prefix ../app.digibtw.nl/react ci
@@ -89,31 +88,49 @@ jobs:
           BUNDLE_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-dev.${{ github.run_number }}"
           echo "bundle_version=${BUNDLE_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Upload to Capgo beta MVP
+      - name: Upload to Capgo beta
         run: |
           npx @capgo/cli bundle upload \
             --apikey "${{ secrets.CAPGO_TOKEN }}" \
             --app-id com.capgo.mvp.app.app \
             --channel beta \
             --bundle-version "${{ steps.version.outputs.bundle_version }}" \
-            --min-update-version "${{ needs.detect.outputs.app_version }}" 
+            --min-update-version "${{ needs.detect.outputs.app_version }}"
 
-#      - name: Upload to Capgo beta (DigiBoox)
-#        run: |
-#          npx @capgo/cli bundle upload \
-#            --apikey "${{ secrets.CAPGO_TOKEN }}" \
-#            --app-id "${{ secrets.CAPGO_APP_ID_DIGIBTW }}" \
-#            --channel beta \
-#            --bundle-version "${{ steps.version.outputs.bundle_version }}" \
-#            --min-update-version "${{ needs.detect.outputs.app_version }}" \
-#            --path ../app.digibtw.nl/react/dist
+  build-native-dev:
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.native_pending == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          fetch-depth: 0
+          fetch-tags: true
 
-#      - name: Upload to Capgo beta (Knab)
-#        run: |
-#          npx @capgo/cli bundle upload \
-#            --apikey "${{ secrets.CAPGO_TOKEN }}" \
-#            --app-id "${{ secrets.CAPGO_APP_ID_KNAB }}" \
-#            --channel beta \
-#            --bundle-version "${{ steps.version.outputs.bundle_version }}" \
-#            --min-update-version "${{ needs.detect.outputs.app_version }}" \
-#            --path ../app.digibtw.nl/react/dist
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync
+
+      - name: Build native app
+        run: echo "Building native app"
+
+      - name: Create and push native dev tag
+        run: |
+          VERSION="${{ needs.detect.outputs.app_version }}"
+          TAG="mobile-native-dev-v${VERSION}-build${{ github.run_number }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Created tag: ${TAG}"

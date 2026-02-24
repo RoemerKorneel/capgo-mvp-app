@@ -1,0 +1,74 @@
+name: Publish Mobile App (Production)
+
+on:
+  pull_request:
+    branches: [prod]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  detect:
+    if: github.head_ref == 'release'
+    runs-on: ubuntu-latest
+    outputs:
+      native_pending: ${{ steps.check.outputs.native_pending }}
+      app_version: ${{ steps.check.outputs.app_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check for native changes in PR diff
+        id: check
+        run: |
+          NATIVE_PATHS="^(package\.json|capacitor\.config\.json|trapeze\.yml|ios/|android/)"
+          APP_VERSION=$(node -p "require('./package.json').version")
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+
+          CHANGED=$(git diff --name-only origin/prod...HEAD | grep -cE "${NATIVE_PATHS}" || true)
+          if [ "$CHANGED" -gt "0" ]; then
+            echo "native_pending=true" >> $GITHUB_OUTPUT
+          else
+            echo "native_pending=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish-ota-prod:
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.native_pending == 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Build React frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload to Capgo production
+        run: |
+          BUNDLE_VERSION="${{ needs.detect.outputs.app_version }}-${{ github.run_number }}"
+          npx @capgo/cli bundle upload \
+            --apikey "${{ secrets.CAPGO_TOKEN }}" \
+            --app-id com.capgo.mvp.app.app \
+            --channel production \
+            --bundle-version "${BUNDLE_VERSION}" \
+            --min-update-version "${{ needs.detect.outputs.app_version }}"
+
+  skip-ota-native-pending:
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.native_pending == 'true'
+    steps:
+      - name: Native changes detected — OTA skipped, triggering native build
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          gh workflow run prepare-mobile-release.yml \
+            --repo "${{ github.repository }}" \
+            --ref dev \
+            -f release_type=patch

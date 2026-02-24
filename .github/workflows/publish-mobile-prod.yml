@@ -1,13 +1,11 @@
 name: Publish Mobile App (Production)
 
 on:
-  pull_request:
-    branches: [prod]
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [release]
 
 jobs:
   detect:
-    if: github.head_ref == 'release'
     runs-on: ubuntu-latest
     outputs:
       native_pending: ${{ steps.check.outputs.native_pending }}

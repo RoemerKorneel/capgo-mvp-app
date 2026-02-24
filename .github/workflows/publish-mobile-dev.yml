@@ -93,7 +93,7 @@ jobs:
           npx @capgo/cli bundle upload \
             -a "${{ secrets.CAPGO_TOKEN }}" \
             -b "${{ steps.version.outputs.bundle_version }}" \
-            --channel beta 
+            --channel beta \
             --delta
 
   build-native-dev:
